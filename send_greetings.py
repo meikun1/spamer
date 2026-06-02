@@ -25,6 +25,7 @@ import asyncio
 import csv
 import os
 import random
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -114,6 +115,14 @@ async def send_all() -> None:
 
     template = load_template()
     log(f"К отправке: {len(recipients)} получателей.")
+
+    # Если запуск из cron/Termux:Boot без терминала, а сессия ещё не создана —
+    # нельзя интерактивно ввести код. Лучше честно выйти, чем зависнуть.
+    session_exists = (BASE_DIR / f"{SESSION_NAME}.session").exists()
+    if not session_exists and not sys.stdin.isatty():
+        log("Сессии ещё нет, а ввод кода невозможен (нет TTY). "
+            "Запусти один раз вручную: python send_greetings.py")
+        return
 
     async with TelegramClient(SESSION_NAME, API_ID, API_HASH) as client:
         for i, r in enumerate(recipients, 1):
